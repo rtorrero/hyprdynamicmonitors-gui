@@ -15,7 +15,7 @@ jobs:
       image: archlinux:base-devel
     steps:
       - name: Install toolchain
-        run: pacman -Syu --noconfirm --needed git go gtk4
+        run: pacman -Syu --noconfirm --needed git go gtk4 gobject-introspection
 
       - name: Checkout
         uses: actions/checkout@v4

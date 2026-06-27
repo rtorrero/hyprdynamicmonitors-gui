@@ -9,7 +9,7 @@ arch=('x86_64')
 url="https://github.com/rtorrero/hyprdynamicmonitors-gui"
 license=('MIT')
 depends=('gtk4')
-makedepends=('go' 'git' 'gtk4')
+makedepends=('go' 'git' 'gtk4' 'gobject-introspection')
 optdepends=('hyprland: required at runtime for live monitor control via hyprctl')
 options=('!debug' '!lto')
 
