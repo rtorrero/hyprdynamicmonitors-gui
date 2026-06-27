@@ -36,7 +36,11 @@ jobs:
         id: pkg
         run: |
           f=$(ls packaging/arch/*.pkg.tar.zst | head -1)
+          # Stable-named copy so the release download URL never changes.
+          stable="packaging/arch/hyprdynamicmonitors-gui-x86_64.pkg.tar.zst"
+          cp "$f" "$stable"
           echo "file=$f" >> "$GITHUB_OUTPUT"
+          echo "stable=$stable" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$f")" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact
@@ -55,10 +59,11 @@ jobs:
             Rolling Arch Linux package built from the latest `gui` commit
             (`${{ github.sha }}`).
 
-            Install with:
+            Install (stable URL, always the newest build):
             ```sh
-            gh release download latest -R ${{ github.repository }} -p '*.pkg.tar.zst' -D /tmp --clobber
-            sudo pacman -U /tmp/*.pkg.tar.zst
+            sudo pacman -U https://github.com/${{ github.repository }}/releases/download/latest/hyprdynamicmonitors-gui-x86_64.pkg.tar.zst
             ```
           prerelease: true
-          files: ${{ steps.pkg.outputs.file }}
+          files: |
+            ${{ steps.pkg.outputs.file }}
+            ${{ steps.pkg.outputs.stable }}
