@@ -1,0 +1,39 @@
+# Maintainer: rtorrero
+# GTK4 GUI variant of hyprdynamicmonitors. Builds the full binary (which also
+# carries the daemon and TUI subcommands) plus a desktop launcher for `gui`.
+pkgname=hyprdynamicmonitors-gui
+pkgver=0
+pkgrel=1
+pkgdesc="GTK4 GUI for hyprdynamicmonitors: drag-and-drop monitor layout and profile/condition editing"
+arch=('x86_64')
+url="https://github.com/rtorrero/hyprdynamicmonitors-gui"
+license=('MIT')
+depends=('gtk4')
+makedepends=('go' 'git' 'gtk4')
+optdepends=('hyprland: required at runtime for live monitor control via hyprctl')
+options=('!debug' '!lto')
+
+# Resolve the repository root relative to this PKGBUILD (packaging/arch/PKGBUILD).
+_root="$startdir/../.."
+
+pkgver() {
+	cd "$_root"
+	printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+	cd "$_root"
+	export CGO_ENABLED=1
+	export GOPATH="$srcdir/gopath"
+	export GOCACHE="$srcdir/gocache"
+	export GOFLAGS="-trimpath -mod=readonly -modcacherw"
+	go build -o "$srcdir/$pkgname" \
+		-ldflags "-X github.com/fiffeek/hyprdynamicmonitors/cmd.Version=$pkgver" \
+		.
+}
+
+package() {
+	install -Dm755 "$srcdir/$pkgname" "$pkgdir/usr/bin/$pkgname"
+	install -Dm644 "$_root/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+	install -Dm644 "$startdir/$pkgname.desktop" "$pkgdir/usr/share/applications/$pkgname.desktop"
+}

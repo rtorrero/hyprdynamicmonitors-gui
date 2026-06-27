@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=HyprDynamicMonitors GUI
+Comment=Arrange Hyprland monitors and manage profiles
+Exec=hyprdynamicmonitors-gui gui
+Icon=video-display
+Terminal=false
+Categories=Settings;HardwareSettings;Utility;
+Keywords=monitor;display;hyprland;wayland;

@@ -1,0 +1,64 @@
+name: Build Arch package
+
+on:
+  push:
+    branches: [gui]
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to update the rolling "latest" release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install toolchain
+        run: pacman -Syu --noconfirm --needed git go gtk4
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so pkgver() can count commits
+
+      - name: Prepare unprivileged build user
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
+          git config --global --add safe.directory '*'
+          su builder -c "git config --global --add safe.directory '*'"
+
+      - name: Build package with makepkg
+        run: su builder -c "cd packaging/arch && makepkg -f --noconfirm --cleanbuild"
+
+      - name: Locate built package
+        id: pkg
+        run: |
+          f=$(ls packaging/arch/*.pkg.tar.zst | head -1)
+          echo "file=$f" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$f")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: ${{ steps.pkg.outputs.file }}
+          if-no-files-found: error
+
+      - name: Update rolling "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Arch build
+          body: |
+            Rolling Arch Linux package built from the latest `gui` commit
+            (`${{ github.sha }}`).
+
+            Install with:
+            ```sh
+            gh release download latest -R ${{ github.repository }} -p '*.pkg.tar.zst' -D /tmp --clobber
+            sudo pacman -U /tmp/*.pkg.tar.zst
+            ```
+          prerelease: true
+          files: ${{ steps.pkg.outputs.file }}
