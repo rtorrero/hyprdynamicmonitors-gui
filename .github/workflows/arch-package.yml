@@ -15,7 +15,7 @@ jobs:
       image: archlinux:base-devel
     steps:
       - name: Install toolchain
-        run: pacman -Syu --noconfirm --needed git go gtk4 gobject-introspection
+        run: pacman -Syu --noconfirm --needed git go gtk4 gobject-introspection gnupg
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,6 +43,16 @@ jobs:
           echo "stable=$stable" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$f")" >> "$GITHUB_OUTPUT"
 
+      - name: Sign packages
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          fpr=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}')
+          for f in "${{ steps.pkg.outputs.file }}" "${{ steps.pkg.outputs.stable }}"; do
+            gpg --batch --pinentry-mode loopback --detach-sign --no-armor -u "$fpr" "$f"
+          done
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -59,11 +69,18 @@ jobs:
             Rolling Arch Linux package built from the latest `gui` commit
             (`${{ github.sha }}`).
 
-            Install (stable URL, always the newest build):
+            First time on a machine, trust the package signing key:
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/gui/packaging/arch/signing-key.asc | sudo pacman-key --add -
+            sudo pacman-key --lsign-key A7A9F67C016EC5A69056491065C6B687EC34A7E3
+            ```
+            Then install (stable URL, always the newest build):
             ```sh
             sudo pacman -U https://github.com/${{ github.repository }}/releases/download/latest/hyprdynamicmonitors-gui-x86_64.pkg.tar.zst
             ```
           prerelease: true
           files: |
             ${{ steps.pkg.outputs.file }}
+            ${{ steps.pkg.outputs.file }}.sig
             ${{ steps.pkg.outputs.stable }}
+            ${{ steps.pkg.outputs.stable }}.sig
